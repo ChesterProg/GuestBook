@@ -50,6 +50,20 @@ services:
     volumes:
       - mysql_data:/var/lib/mysql
 
+  phpmyadmin:
+    container_name: 'phpmyadmin'
+    image: phpmyadmin/phpmyadmin
+    networks:
+      - skeletonbr
+    ports:
+      - '8080:80'  # You can access phpMyAdmin at http://localhost:8080
+    environment:
+      PMA_HOST: database
+      PMA_USER: chester
+      PMA_PASSWORD: root
+    depends_on:
+      - database
+
 volumes:
   mysql_data:
 
