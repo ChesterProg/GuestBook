@@ -1,0 +1,46 @@
+{% extends 'base.html.twig' %}
+
+{% block body %}
+    <h1>Guestbook Messages</h1>
+
+    <table class="table table-striped">
+        <thead>
+        <tr>
+            <th><a href="?sort=username">Username</a></th>
+            <th><a href="?sort=email">Email</a></th>
+            <th>Message</th>
+            <th><a href="?sort=createdAt">Date</a></th>
+        </tr>
+        </thead>
+        <tbody>
+        {% for message in messages %}
+            <tr>
+                <td>{{ message.name }}</td>
+                <td>{{ message.email }}</td>
+                <td>{{ message.text|raw }}</td> {# Текст відображається з дозволеними HTML-тегами #}
+                <td>{{ message.createdAt|date('Y-m-d H:i') }}</td>
+                <td>
+                    <a href="{{ path('message_edit', {id: message.id}) }}" class="btn btn-primary">Edit</a>
+                    <a href="{{ path('message_delete', {id: message.id}) }}" class="btn btn-danger"
+                       onclick="return confirm('Are you sure you want to delete this message?');">Delete</a>
+                </td>
+            </tr>
+        {% else %}
+            <tr>
+                <td colspan="5">No messages yet.</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+
+    {# Пагінація #}
+    <nav>
+        <ul class="pagination">
+{#            {% for page in 1..totalPages %}#}
+{#                <li class="page-item {% if currentPage == page %}active{% endif %}">#}
+{#                    <a class="page-link" href="?page={{ page }}">{{ page }}</a>#}
+{#                </li>#}
+{#            {% endfor %}#}
+        </ul>
+    </nav>
+{% endblock %}

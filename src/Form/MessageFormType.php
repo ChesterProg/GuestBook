@@ -16,7 +16,7 @@ class MessageFormType extends AbstractType
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
         $builder
-					->add('username', TextType::class, [
+					->add('name', TextType::class, [
 //						// @TODO make regex constraint;
 //						'constraints' => new Assert\Regex([
 //							'pattern' => '/^[a-zA-Z0-9]+$/',
