@@ -16,7 +16,7 @@ class MessageController extends AbstractController
 	public function list(EntityManagerInterface $entityManager): Response
 	{
 		// Retrieve all messages from the database, sorted by creation date (LIFO)
-		$messages = $entityManager->getRepository(Message::class)->findBy(['status' => 'approved'], ['created_at' => 'DESC']);
+		$messages = $entityManager->getRepository(Message::class)->findBy(['status' => true], ['created_at' => 'DESC']);
 
 		// Pass messages to Twig template for display
 		return $this->render('message/message-list.html.twig', [
@@ -30,17 +30,19 @@ class MessageController extends AbstractController
 		$message = new Message();
 
 		// Check if the user has the admin role
-		$isAdmin = $this->isGranted('ROLE_ADMIN');
+		$is_admin = $this->isGranted('ROLE_ADMIN');
 
 		$form = $this->createForm(MessageFormType::class, $message, [
-			'is_admin' => $isAdmin,
+			'is_admin' => $is_admin,
 		]);
+
 		$form->handleRequest($request);
 
 
 		if ($form->isSubmitted() && $form->isValid()) {
-			// Check if the approval checkbox is checked.
-			$message->setStatus($form->get('status')->getData());
+			$status = $form->has('status') ? $form->get('status')->getData() : false;
+
+			$message->setStatus($status);
 
 			// Set created timestamps
 			$now = new DateTime();
@@ -78,11 +80,15 @@ class MessageController extends AbstractController
 	#[Route('/messages/{id}/edit', name: 'message_edit')]
 	public function editMessage(Request $request, Message $message, EntityManagerInterface $entityManager): Response
 	{
+		// Check if the current user is the owner of the message
+		if ($message->getUser() !== $this->getUser()) {
+			throw $this->createAccessDeniedException('You do not have permission to edit this message.');
+		}
+
 		$form = $this->createForm(MessageFormType::class, $message);
 		$form->handleRequest($request);
 
 		if ($form->isSubmitted() && $form->isValid()) {
-			$message->setUpdatedAt(new DateTime());
 			$message->setIpAddress($request->getClientIp());
 			$message->setUserAgent($request->headers->get('User-Agent'));
 

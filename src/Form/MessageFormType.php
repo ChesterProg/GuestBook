@@ -5,6 +5,7 @@ namespace App\Form;
 use App\Entity\Message;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
+use Symfony\Component\Form\Extension\Core\Type\HiddenType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\Extension\Core\Type\TextareaType;
 use Symfony\Component\Form\Extension\Core\Type\UrlType;
@@ -69,12 +70,13 @@ public function buildForm(FormBuilderInterface $builder, array $options): void
 			],
 		]);
 
+	// Add the checkbox for admin to approve the message
 	if ($options['is_admin']) {
 		$builder->add('status', CheckboxType::class, [
-			'required' => false, // Checkbox is optional
+			'required' => false,
 			'label' => 'Approve this message',
+			'data' => false, // Default value for the checkbox
 		]);
-
 	}
 
 }

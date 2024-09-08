@@ -3,6 +3,7 @@
 namespace App\Entity;
 
 use App\Repository\MessageRepository;
+use Doctrine\Common\Annotations\Annotation\IgnoreAnnotation;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Validator\Constraints as Assert;
@@ -49,7 +50,24 @@ class Message
 	#[ORM\Column(length: 255, nullable: true)]
 	private ?string $user_agent = null;
 
+	/**
+	 * @ORM\ManyToOne(targetEntity="App\Entity\User")
+	 * @ORM\JoinColumn(nullable=false)
+	 */
+	private User $user;
+
 	// Getters and Setters...
+
+	public function getUser(): ?User
+	{
+		return $this->user;
+	}
+
+	public function setUser(?User $user): self
+	{
+		$this->user = $user;
+		return $this;
+	}
 
 	public function getId(): ?int
 	{
@@ -111,7 +129,7 @@ class Message
 	return $this;
 	}
 
-	public function isStatus(): ?bool
+	public function getStatus(): ?bool
 	{
 	return $this->status;
 	}
