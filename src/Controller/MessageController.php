@@ -2,7 +2,7 @@
 namespace App\Controller;
 
 use App\Entity\Message;
-use App\Form\MessageFormType;
+use App\Form\MessageFormType; // Ensure this matches the form class name
 use DateTime;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -15,10 +15,10 @@ class MessageController extends AbstractController
 	#[Route('/messages', name: 'message_list')]
 	public function list(EntityManagerInterface $entityManager): Response
 	{
-		// Отримуємо всі повідомлення з бази даних, сортуємо за датою створення (LIFO)
-		$messages = $entityManager->getRepository(Message::class)->findBy([], ['created_at' => 'DESC']);
+		// Retrieve all messages from the database, sorted by creation date (LIFO)
+		$messages = $entityManager->getRepository(Message::class)->findBy(['status' => 'approved'], ['created_at' => 'DESC']);
 
-		// Передаємо повідомлення в Twig шаблон для відображення
+		// Pass messages to Twig template for display
 		return $this->render('message/message-list.html.twig', [
 			'messages' => $messages
 		]);
@@ -28,29 +28,45 @@ class MessageController extends AbstractController
 	public function addMessage(Request $request, EntityManagerInterface $entityManager): Response
 	{
 		$message = new Message();
-		$form = $this->createForm(MessageFormType::class, $message);
+
+		// Check if the user has the admin role
+		$isAdmin = $this->isGranted('ROLE_ADMIN');
+
+		$form = $this->createForm(MessageFormType::class, $message, [
+			'is_admin' => $isAdmin,
+		]);
 		$form->handleRequest($request);
 
+
 		if ($form->isSubmitted() && $form->isValid()) {
-			// Set data created and updated.
+			// Check if the approval checkbox is checked.
+			$message->setStatus($form->get('status')->getData());
+
+			// Set created timestamps
 			$now = new DateTime();
 			$message->setCreatedAt($now);
-			$message->setUpdatedAt($now);
-			// Set default status (e.g., true or false)
-			$message->setStatus(false);
-			// Record IP and user agent.
+
+			// Record IP and user agent
 			$message->setIpAddress($request->getClientIp());
 			$message->setUserAgent($request->headers->get('User-Agent'));
 
-			// Захист від XSS — дозволити тільки певні теги
+			// Handle image upload
+			$file = $form->get('image_path')->getData();
+			if ($file) {
+				$newFilename = uniqid('', TRUE).'.'.$file->guessExtension();
+				$file->move($this->getParameter('images_directory'), $newFilename);
+				$message->setImagePath($newFilename);
+			}
+
+			// Sanitize input to allow only specific HTML tags
 			$allowedTags = '<a><code><i><strike><strong>';
 			$message->setText(strip_tags($message->getText(), $allowedTags));
 
-			// Зберігаємо повідомлення в базу
+			// Persist the message to the database
 			$entityManager->persist($message);
 			$entityManager->flush();
 
-			// Перенаправлення після успішного додавання
+			// Redirect after successful addition
 			return $this->redirectToRoute('message_list');
 		}
 
@@ -69,9 +85,21 @@ class MessageController extends AbstractController
 			$message->setUpdatedAt(new DateTime());
 			$message->setIpAddress($request->getClientIp());
 			$message->setUserAgent($request->headers->get('User-Agent'));
+
+			// Sanitize input to allow only specific HTML tags
 			$allowedTags = '<a><code><i><strike><strong>';
 			$message->setText(strip_tags($message->getText(), $allowedTags));
+
+			// Handle image upload if a new image is provided
+			$file = $form->get('image_path')->getData();
+			if ($file) {
+				$newFilename = uniqid('', TRUE).'.'.$file->guessExtension();
+				$file->move($this->getParameter('images_directory'), $newFilename);
+				$message->setImagePath($newFilename);
+			}
+
 			$entityManager->flush();
+
 			return $this->redirectToRoute('message_list');
 		}
 
@@ -81,11 +109,12 @@ class MessageController extends AbstractController
 		]);
 	}
 
-	#[Route('/message/{id}/delete', name: 'message_delete')]
+	#[Route('/messages/{id}/delete', name: 'message_delete')]
 	public function delete(Message $message, EntityManagerInterface $entityManager): Response
 	{
 		$entityManager->remove($message);
 		$entityManager->flush();
+
 		return $this->redirectToRoute('message_list');
 	}
 }

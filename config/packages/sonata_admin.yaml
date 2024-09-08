@@ -1,0 +1,5 @@
+sonata_admin:
+  title: 'Admin-panel Guest Book'
+  dashboard:
+    blocks:
+      - { position: top, type: sonata.block.service.text, settings: { content: '<h1>Welcome to admin panel!</h1>' } }
