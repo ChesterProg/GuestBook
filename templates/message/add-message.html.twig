@@ -1,0 +1,17 @@
+{% extends 'base.html.twig' %}
+
+{% block body %}
+    <h1>Create New Message</h1>
+
+    {{ form_start(form) }}
+    {{ form_row(form.name) }}
+    {{ form_row(form.email) }}
+    {{ form_row(form.homepage) }}
+    {{ form_row(form.text) }}
+{#    {{ form_row(form.image) }}#}
+
+    <button class="btn btn-primary">Create</button>
+    {{ form_end(form) }}
+
+    <a href="{{ path('message_list') }}">Back to message list</a>
+{% endblock %}
