@@ -1,26 +1,45 @@
 <?php
+
 namespace App\Controller;
 
 use App\Entity\Message;
-use App\Form\MessageFormType; // Ensure this matches the form class name
+use App\Form\MessageFormType;
 use DateTime;
 use Doctrine\ORM\EntityManagerInterface;
+use Pagerfanta\Pagerfanta;
+use Pagerfanta\Doctrine\ORM\QueryAdapter;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 
 class MessageController extends AbstractController
 {
-	#[Route('/messages', name: 'message_list')]
-	public function list(EntityManagerInterface $entityManager): Response
+	#[Route('/', name: 'message_list')]
+	public function list(Request $request, EntityManagerInterface $entityManager): Response
 	{
-		// Retrieve all messages from the database, sorted by creation date (LIFO)
-		$messages = $entityManager->getRepository(Message::class)->findBy(['status' => 'approved'], ['created_at' => 'DESC']);
 
-		// Pass messages to Twig template for display
+		// Get sorting parameters
+		$sortField = $request->query->get('sort', 'created_at');
+		$sortOrder = $request->query->get('order', 'DESC');
+
+		// Pagination setup
+		$queryBuilder = $entityManager->getRepository(Message::class)->createQueryBuilder('m')
+			->where('m.status = :status')
+			->setParameter('status', true)
+			->orderBy('m.' . $sortField, $sortOrder);
+
+		$pagerfanta = new Pagerfanta(new QueryAdapter($queryBuilder));
+		$pagerfanta->setMaxPerPage(25); // Set number of messages per page.
+		$currentPage = $request->query->getInt('page', 1);
+		$pagerfanta->setCurrentPage($currentPage);
+
 		return $this->render('message/message-list.html.twig', [
-			'messages' => $messages
+			'messages' => $pagerfanta->getCurrentPageResults(),
+			'pager' => $pagerfanta, // Pass the pager object to the template.
+			'sortField' => $sortField,
+			'sortOrder' => $sortOrder,
 		]);
 	}
 
@@ -28,39 +47,18 @@ class MessageController extends AbstractController
 	public function addMessage(Request $request, EntityManagerInterface $entityManager): Response
 	{
 		$message = new Message();
-
-		// Check if the user has the admin role
 		$isAdmin = $this->isGranted('ROLE_ADMIN');
 
+		// Create the form for adding a new message
 		$form = $this->createForm(MessageFormType::class, $message, [
+			'user_id' => $this->getUser() ? $this->getUser()->getId() : 0,
 			'is_admin' => $isAdmin,
 		]);
+
 		$form->handleRequest($request);
 
-
 		if ($form->isSubmitted() && $form->isValid()) {
-			// Check if the approval checkbox is checked.
-			$message->setStatus($form->get('status')->getData());
-
-			// Set created timestamps
-			$now = new DateTime();
-			$message->setCreatedAt($now);
-
-			// Record IP and user agent
-			$message->setIpAddress($request->getClientIp());
-			$message->setUserAgent($request->headers->get('User-Agent'));
-
-			// Handle image upload
-			$file = $form->get('image_path')->getData();
-			if ($file) {
-				$newFilename = uniqid('', TRUE).'.'.$file->guessExtension();
-				$file->move($this->getParameter('images_directory'), $newFilename);
-				$message->setImagePath($newFilename);
-			}
-
-			// Sanitize input to allow only specific HTML tags
-			$allowedTags = '<a><code><i><strike><strong>';
-			$message->setText(strip_tags($message->getText(), $allowedTags));
+			$this->handleFormSubmission($form, $message, $request);
 
 			// Persist the message to the database
 			$entityManager->persist($message);
@@ -78,28 +76,19 @@ class MessageController extends AbstractController
 	#[Route('/messages/{id}/edit', name: 'message_edit')]
 	public function editMessage(Request $request, Message $message, EntityManagerInterface $entityManager): Response
 	{
-		$form = $this->createForm(MessageFormType::class, $message);
+		$form = $this->createForm(MessageFormType::class, $message, [
+			'user_id' => $this->getUser() ? $this->getUser()->getId() : 0,
+			'is_edit' => true,
+		]);
+
 		$form->handleRequest($request);
+		$this->checkEditPermissions($message);
 
 		if ($form->isSubmitted() && $form->isValid()) {
-			$message->setUpdatedAt(new DateTime());
-			$message->setIpAddress($request->getClientIp());
-			$message->setUserAgent($request->headers->get('User-Agent'));
+			$this->handleFormSubmission($form, $message, $request);
 
-			// Sanitize input to allow only specific HTML tags
-			$allowedTags = '<a><code><i><strike><strong>';
-			$message->setText(strip_tags($message->getText(), $allowedTags));
-
-			// Handle image upload if a new image is provided
-			$file = $form->get('image_path')->getData();
-			if ($file) {
-				$newFilename = uniqid('', TRUE).'.'.$file->guessExtension();
-				$file->move($this->getParameter('images_directory'), $newFilename);
-				$message->setImagePath($newFilename);
-			}
-
+			// Update the message in the database
 			$entityManager->flush();
-
 			return $this->redirectToRoute('message_list');
 		}
 
@@ -112,9 +101,67 @@ class MessageController extends AbstractController
 	#[Route('/messages/{id}/delete', name: 'message_delete')]
 	public function delete(Message $message, EntityManagerInterface $entityManager): Response
 	{
+		$this->checkDeletePermissions($message);
+
 		$entityManager->remove($message);
 		$entityManager->flush();
 
 		return $this->redirectToRoute('message_list');
+	}
+
+	private function handleFormSubmission($form, Message $message, Request $request): void
+	{
+		// Handle status from form
+		$status = $form->has('status') ? $form->get('status')->getData() : false;
+		$message->setStatus($status);
+
+		// Set created timestamps
+		$now = new DateTime();
+		$message->setCreatedAt($now);
+
+		// Record IP and user agent
+		$message->setUserAgent($request->headers->get('User-Agent'));
+
+		// Handle image upload
+		$this->handleImageUpload($form, $message);
+
+		// Sanitize input to allow only specific HTML tags
+		$allowedTags = '<a><code><i><strike><strong>';
+		$message->setText(strip_tags($message->getText(), $allowedTags));
+	}
+
+	private function handleImageUpload($form, Message $message): void
+	{
+		/** @var UploadedFile $file */
+		$file = $form->get('image_path')->getData();
+		if ($file instanceof UploadedFile) {
+			$newFilename = uniqid('', true) . '.' . $file->guessExtension();
+			$file->move($this->getParameter('images_directory'), $newFilename);
+			$message->setImagePath($this->getParameter('images_directory') . $newFilename);
+		}
+	}
+
+	private function checkEditPermissions(Message $message): void
+	{
+		$currentUserId = $this->getUser() ? $this->getUser()->getId() : null;
+		$isAdmin = $this->isGranted('ROLE_ADMIN');
+		$userIdFromMessage = $message->getUserId();
+
+		// Check if the user is an admin or the owner of the message
+		if (!$isAdmin && $currentUserId !== $userIdFromMessage) {
+			throw $this->createAccessDeniedException('You do not have permission to edit this message.');
+		}
+	}
+
+	private function checkDeletePermissions(Message $message): void
+	{
+		$currentUserId = $this->getUser() ? $this->getUser()->getId() : null;
+		$isAdmin = $this->isGranted('ROLE_ADMIN');
+		$userIdFromMessage = $message->getUserId();
+
+		// Check if the user is an admin or the owner of the message
+		if (!$isAdmin && $currentUserId !== $userIdFromMessage) {
+			throw $this->createAccessDeniedException('You do not have permission to delete this message.');
+		}
 	}
 }

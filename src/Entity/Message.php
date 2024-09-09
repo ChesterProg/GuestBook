@@ -3,6 +3,7 @@
 namespace App\Entity;
 
 use App\Repository\MessageRepository;
+use Doctrine\Common\Annotations\Annotation\IgnoreAnnotation;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Validator\Constraints as Assert;
@@ -40,18 +41,35 @@ class Message
 	#[ORM\Column]
 	private ?bool $status = false;
 
-	#[ORM\Column(type: Types::DATETIME_MUTABLE)]
+	#[ORM\Column(type: 'datetime')]
 	private ?\DateTimeInterface $created_at = null;
 
-	#[ORM\Column(length: 255, nullable: true)]
-	private ?string $ip_address = null;
+	#[ORM\Column(type: "string", nullable: true)]
+	private ?string $user_id = null;
 
 	#[ORM\Column(length: 255, nullable: true)]
 	private ?string $user_agent = null;
 
+	/**
+	 * @ORM\ManyToOne(targetEntity="App\Entity\User")
+	 * @ORM\JoinColumn(nullable=false)
+	 */
+	private User $user;
+
 	// Getters and Setters...
 
-	public function getId(): ?int
+	public function getUser(): ?User
+	{
+		return $this->user;
+	}
+
+	public function setUser(User $user): self
+	{
+		$this->user = $user;
+		return $this;
+	}
+
+	public function getId(): int
 	{
 	return $this->id;
 	}
@@ -111,7 +129,7 @@ class Message
 	return $this;
 	}
 
-	public function isStatus(): ?bool
+	public function getStatus(): ?bool
 	{
 	return $this->status;
 	}
@@ -133,14 +151,14 @@ class Message
 	return $this;
 	}
 
-	public function getIpAddress(): ?string
+	public function getUserId(): ?string
 	{
-	return $this->ip_address;
+	return $this->user_id;
 	}
 
-	public function setIpAddress(?string $ip_address): static
+	public function setUserId(string $user_id): static
 	{
-	$this->ip_address = $ip_address;
+	$this->user_id = $user_id;
 	return $this;
 	}
 
