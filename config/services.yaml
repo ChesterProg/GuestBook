@@ -20,24 +20,6 @@ services:
         tags:
             - { name: sonata.admin, manager_type: orm, group: 'Configure', label: 'Users' }
 
-#    App\Admin\MessageAdmin:
-#        arguments: [ ~, App\Entity\Message, ~ ]
-#        tags:
-#            - { name: sonata.admin,
-#                manager_type: orm,
-#                label: 'Messages',
-#                group: 'Messages',
-#                code: 'app.admin.message' }
-#
-#    App\Admin\UserAdmin:
-#        arguments: [~, App\Entity\User, ~]
-#        tags:
-#            - { name: sonata.admin,
-#                manager_type: orm,
-#                label: 'Users',
-#                code: 'app.admin.user',
-#                translation_domain: 'App' }
-
     # default configuration for services in *this* file
     _defaults:
         autowire: true      # Automatically injects dependencies in your services.

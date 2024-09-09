@@ -16,13 +16,22 @@ use Doctrine\Persistence\ManagerRegistry;
  */
 class MessageRepository extends ServiceEntityRepository
 {
-    public function __construct(ManagerRegistry $registry)
-    {
-        parent::__construct($registry, Message::class);
-    }
+	public function __construct(ManagerRegistry $registry)
+	{
+			parent::__construct($registry, Message::class);
+	}
+	public function findAllMessagesPaginated($page, $limit)
+	{
+		$queryBuilder = $this->createQueryBuilder('m')
+			->orderBy('m.created_at', 'DESC')
+			->setFirstResult(($page - 1) * $limit)
+			->setMaxResults($limit);
 
-//    /**
-//     * @return Message[] Returns an array of Message objects
+		return $queryBuilder->getQuery()->getResult();
+	}
+
+
+	//     * @return Message[] Returns an array of Message objects
 //     */
 //    public function findByExampleField($value): array
 //    {
