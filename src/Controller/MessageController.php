@@ -51,7 +51,7 @@ class MessageController extends AbstractController
 			->orderBy('m.' . $sortField, $sortOrder);
 
 		$pagerfanta = new Pagerfanta(new QueryAdapter($queryBuilder));
-		$pagerfanta->setMaxPerPage(5); // Set number of messages per page.
+		$pagerfanta->setMaxPerPage(25); // Set number of messages per page.
 		$currentPage = $request->query->getInt('page', 1);
 		$pagerfanta->setCurrentPage($currentPage);
 
