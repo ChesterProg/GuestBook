@@ -36,7 +36,7 @@ services:
   database:
     container_name: 'mysql-skeleton'
     platform: linux/x86_64
-    image: mysql:5.7
+    image: mysql:5.7.40
     networks:
       - skeletonbr
     ports:

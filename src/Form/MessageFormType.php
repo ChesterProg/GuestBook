@@ -46,6 +46,7 @@ class MessageFormType extends AbstractType
 					new Assert\NotBlank(),
 					new Assert\Length(['max' => 1000]),
 				],
+				'help' => 'Allowed HTML tags: <a>, <code>, <i>, <strike>, <strong>', // Hint for allowed HTML tags.
 			])
 			->add('user_id', HiddenType::class, [
 				'data' => $options['user_id'],

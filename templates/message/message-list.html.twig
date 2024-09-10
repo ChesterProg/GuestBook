@@ -21,6 +21,7 @@
                 </a>
             </th>
             <th scope="col">Message</th>
+            <th scope="col">Image</th>
             <th scope="col">
                 <a href="{{ path('message_list', { sort: 'created_at', order: sortOrder == 'ASC' ? 'DESC' : 'ASC' }) }}">
                     Date {% if sortField == 'created_at' %}{{ sortOrder == 'ASC' ? '▲' : '▼' }}{% endif %}
@@ -35,6 +36,13 @@
                 <td>{{ message.name }}</td>
                 <td>{{ message.email }}</td>
                 <td>{{ message.text|raw }}</td>
+                <td>
+                    {% if message.imagePath %}
+                        <img src="{{ asset(message.imagePath) }}" alt="Image" style="max-width: 100px; max-height: 100px;"/> <!-- Display the image -->
+                    {% else %}
+                        No Image
+                    {% endif %}
+                </td>
                 <td>{{ message.createdAt|date('Y-m-d H:i') }}</td>
                 <td class="text-center">
                     <a href="{{ path('message_edit', {id: message.id}) }}" class="btn btn-primary btn-sm">Edit</a>

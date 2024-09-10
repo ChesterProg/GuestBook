@@ -4,6 +4,7 @@ namespace App\Controller;
 
 use App\Entity\Message;
 use App\Form\MessageFormType;
+use App\Service\HtmlPurifierService;
 use DateTime;
 use Doctrine\ORM\EntityManagerInterface;
 use Pagerfanta\Pagerfanta;
@@ -16,6 +17,13 @@ use Symfony\Component\Routing\Annotation\Route;
 
 class MessageController extends AbstractController
 {
+	private HtmlPurifierService $purifier;
+
+	public function __construct(HtmlPurifierService $purifier)
+	{
+		$this->purifier = $purifier;
+	}
+
 	#[Route('/', name: 'message_list')]
 	public function list(Request $request, EntityManagerInterface $entityManager): Response
 	{
@@ -126,8 +134,8 @@ class MessageController extends AbstractController
 		$this->handleImageUpload($form, $message);
 
 		// Sanitize input to allow only specific HTML tags
-		$allowedTags = '<a><code><i><strike><strong>';
-		$message->setText(strip_tags($message->getText(), $allowedTags));
+		$cleanText = $this->purifier->purify($message->getText());
+		$message->setText($cleanText);
 	}
 
 	private function handleImageUpload($form, Message $message): void
@@ -137,7 +145,7 @@ class MessageController extends AbstractController
 		if ($file instanceof UploadedFile) {
 			$newFilename = uniqid('', true) . '.' . $file->guessExtension();
 			$file->move($this->getParameter('images_directory'), $newFilename);
-			$message->setImagePath($this->getParameter('images_directory') . $newFilename);
+			$message->setImagePath('/uploads/images/' . $newFilename);
 		}
 	}
 
