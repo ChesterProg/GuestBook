@@ -15,15 +15,27 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 
+/**
+ * Class MessageController
+ * This controller handles the CRUD operations for messages.
+ */
 class MessageController extends AbstractController
 {
 	private HtmlPurifierService $purifier;
 
+	// Constructor to inject the HTML purifier service.
 	public function __construct(HtmlPurifierService $purifier)
 	{
 		$this->purifier = $purifier;
 	}
 
+	/**
+	 * Lists all messages with pagination and sorting.
+	 *
+	 * @param Request $request The HTTP request object.
+	 * @param EntityManagerInterface $entityManager The entity manager for database operations.
+	 * @return Response The rendered response with the message list.
+	 */
 	#[Route('/', name: 'message_list')]
 	public function list(Request $request, EntityManagerInterface $entityManager): Response
 	{
@@ -51,6 +63,13 @@ class MessageController extends AbstractController
 		]);
 	}
 
+	/**
+	 * Handles the addition of a new message.
+	 *
+	 * @param Request $request The HTTP request object.
+	 * @param EntityManagerInterface $entityManager The entity manager for database operations.
+	 * @return Response The rendered response for adding a message.
+	 */
 	#[Route('/messages/add', name: 'message_new')]
 	public function addMessage(Request $request, EntityManagerInterface $entityManager): Response
 	{
@@ -84,6 +103,14 @@ class MessageController extends AbstractController
 		]);
 	}
 
+	/**
+	 * Handles the editing of an existing message.
+	 *
+	 * @param Request $request The HTTP request object.
+	 * @param Message $message The message entity to edit.
+	 * @param EntityManagerInterface $entityManager The entity manager for database operations.
+	 * @return Response The rendered response for editing a message.
+	 */
 	#[Route('/messages/{id}/edit', name: 'message_edit')]
 	public function editMessage(Request $request, Message $message, EntityManagerInterface $entityManager): Response
 	{
@@ -113,6 +140,13 @@ class MessageController extends AbstractController
 		]);
 	}
 
+	/**
+	 * Handles the deletion of a message.
+	 *
+	 * @param Message $message The message entity to delete.
+	 * @param EntityManagerInterface $entityManager The entity manager for database operations.
+	 * @return Response The redirect response after deletion.
+	 */
 	#[Route('/messages/{id}/delete', name: 'message_delete')]
 	public function delete(Message $message, EntityManagerInterface $entityManager): Response
 	{
@@ -124,6 +158,13 @@ class MessageController extends AbstractController
 		return $this->redirectToRoute('message_list');
 	}
 
+	/**
+	 * Handles form submission for messages.
+	 *
+	 * @param Message $message The message entity.
+	 * @param Request $request The HTTP request object.
+	 * @param bool $isEdit Indicates if this is an edit operation.
+	 */
 	private function handleFormSubmission($form, Message $message, Request $request, bool $isEdit = false): void
 	{
 		// Handle status from form
@@ -147,6 +188,11 @@ class MessageController extends AbstractController
 		$message->setText($cleanText);
 	}
 
+	/**
+	 * Handles image upload for messages.
+	 *
+	 * @param Message $message The message entity.
+	 */
 	private function handleImageUpload($form, Message $message): void
 	{
 		/** @var UploadedFile $file */
@@ -158,6 +204,12 @@ class MessageController extends AbstractController
 		}
 	}
 
+	/**
+	 * Checks if the current user has permission to edit a message.
+	 *
+	 * @param Message $message The message entity.
+	 * @throws \Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException if the user does not have permission.
+	 */
 	private function checkEditPermissions(Message $message): void
 	{
 		$currentUserId = $this->getUser() ? $this->getUser()->getId() : null;
@@ -170,6 +222,12 @@ class MessageController extends AbstractController
 		}
 	}
 
+	/**
+	 * Checks if the current user has permission to delete a message.
+	 *
+	 * @param Message $message The message entity.
+	 * @throws \Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException if the user does not have permission.
+	 */
 	private function checkDeletePermissions(Message $message): void
 	{
 		$currentUserId = $this->getUser() ? $this->getUser()->getId() : null;

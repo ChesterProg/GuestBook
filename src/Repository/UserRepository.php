@@ -10,8 +10,13 @@ use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 use Symfony\Component\Security\Core\User\PasswordUpgraderInterface;
 
 /**
- * @extends ServiceEntityRepository<User>
+ * UserRepository class
  *
+ * This class is responsible for accessing and manipulating User entities in the database.
+ * It extends the ServiceEntityRepository to leverage Doctrine's built-in methods
+ * and implements PasswordUpgraderInterface for managing password upgrades.
+ *
+ * @extends ServiceEntityRepository<User>
  * @implements PasswordUpgraderInterface<User>
  *
  * @method User|null find($id, $lockMode = null, $lockVersion = null)
@@ -21,47 +26,37 @@ use Symfony\Component\Security\Core\User\PasswordUpgraderInterface;
  */
 class UserRepository extends ServiceEntityRepository implements PasswordUpgraderInterface
 {
-    public function __construct(ManagerRegistry $registry)
-    {
-        parent::__construct($registry, User::class);
-    }
+	/**
+	 * UserRepository constructor.
+	 *
+	 * @param ManagerRegistry $registry The registry to manage the entity
+	 */
+	public function __construct(ManagerRegistry $registry)
+	{
+		parent::__construct($registry, User::class);
+	}
 
-    /**
-     * Used to upgrade (rehash) the user's password automatically over time.
-     */
-    public function upgradePassword(PasswordAuthenticatedUserInterface $user, string $newHashedPassword): void
-    {
-        if (!$user instanceof User) {
-            throw new UnsupportedUserException(sprintf('Instances of "%s" are not supported.', $user::class));
-        }
+	/**
+	 * Upgrades (rehashes) the user's password automatically over time.
+	 *
+	 * This method checks if the user is an instance of User and then updates the user's password.
+	 *
+	 * @param PasswordAuthenticatedUserInterface $user The user whose password is being upgraded
+	 * @param string $newHashedPassword The new hashed password
+	 * @throws UnsupportedUserException if the user is not an instance of User
+	 */
+	public function upgradePassword(PasswordAuthenticatedUserInterface $user, string $newHashedPassword): void
+	{
+		// Ensure that the user is an instance of the User entity
+		if (!$user instanceof User) {
+			throw new UnsupportedUserException(sprintf('Instances of "%s" are not supported.', $user::class));
+		}
 
-        $user->setPassword($newHashedPassword);
-        $this->getEntityManager()->persist($user);
-        $this->getEntityManager()->flush();
-    }
+		// Set the new hashed password for the user
+		$user->setPassword($newHashedPassword);
 
-//    /**
-//     * @return User[] Returns an array of User objects
-//     */
-//    public function findByExampleField($value): array
-//    {
-//        return $this->createQueryBuilder('u')
-//            ->andWhere('u.exampleField = :val')
-//            ->setParameter('val', $value)
-//            ->orderBy('u.id', 'ASC')
-//            ->setMaxResults(10)
-//            ->getQuery()
-//            ->getResult()
-//        ;
-//    }
-
-//    public function findOneBySomeField($value): ?User
-//    {
-//        return $this->createQueryBuilder('u')
-//            ->andWhere('u.exampleField = :val')
-//            ->setParameter('val', $value)
-//            ->getQuery()
-//            ->getOneOrNullResult()
-//        ;
-//    }
+		// Persist the changes to the entity manager
+		$this->getEntityManager()->persist($user);
+		$this->getEntityManager()->flush();
+	}
 }

@@ -10,9 +10,18 @@ use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
 
+/**
+ * Class UserAdmin
+ * This class manages the administration interface for user entities.
+ */
 class UserAdmin extends AbstractAdmin
 {
-	// Налаштування форми для додавання/редагування користувачів
+
+	/**
+	 * Configure the form fields for adding/editing users.
+	 *
+	 * @param FormMapper $formMapper The form mapper for configuring form fields.
+	 */
 	protected function configureFormFields(FormMapper $form_mapper): void
 	{
 		$form_mapper
@@ -33,7 +42,11 @@ class UserAdmin extends AbstractAdmin
 
 	}
 
-	// Налаштування фільтрів для пошуку та фільтрації користувачів
+	/**
+	 * Configure the filters for searching and filtering users.
+	 *
+	 * @param DatagridMapper $filter The datagrid mapper for configuring filters.
+	 */
 	protected function configureDatagridFilters(DatagridMapper $filter): void
 	{
 		$filter
@@ -42,7 +55,11 @@ class UserAdmin extends AbstractAdmin
 		->add('is_blocked');
 	}
 
-	// Налаштування списку для відображення користувачів
+	/**
+	 * Configure the fields displayed in the list view of users.
+	 *
+	 * @param ListMapper $list The list mapper for configuring list fields.
+	 */
 	protected function configureListFields(ListMapper $list): void
 	{
 		$list
