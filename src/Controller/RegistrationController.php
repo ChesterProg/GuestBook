@@ -1,5 +1,4 @@
 <?php
-
 namespace App\Controller;
 
 use App\Entity\User;
@@ -13,37 +12,66 @@ use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\Security\Http\Authentication\UserAuthenticatorInterface;
 
+/**
+ * Class RegistrationController
+ * Handles user registration logic.
+ */
 class RegistrationController extends AbstractController
 {
-    #[Route('/register', name: 'app_register')]
-    public function register(Request $request, UserPasswordHasherInterface $userPasswordHasher, UserAuthenticatorInterface $userAuthenticator, LoginFormAuthenticator $authenticator, EntityManagerInterface $entityManager): Response
-    {
-        $user = new User();
-        $form = $this->createForm(RegistrationFormType::class, $user);
-        $form->handleRequest($request);
+	/**
+	 *
+	 * This method handles the registration of new users.
+	 *
+	 * @param Request $request The HTTP request object.
+	 * @param UserPasswordHasherInterface $userPasswordHasher The service for hashing user passwords.
+	 * @param UserAuthenticatorInterface $userAuthenticator The service for authenticating users.
+	 * @param LoginFormAuthenticator $authenticator The login form authenticator.
+	 * @param EntityManagerInterface $entityManager The entity manager for database operations.
+	 * @return Response The rendered response for the registration page or a redirect to the main page after successful registration.
+	 */
+	#[Route('/register', name: 'app_register')]
+	public function register(
+		Request $request,
+		UserPasswordHasherInterface $userPasswordHasher,
+		UserAuthenticatorInterface $userAuthenticator,
+		LoginFormAuthenticator $authenticator,
+		EntityManagerInterface $entityManager
+	): Response {
+		// Create a new User entity.
+		$user = new User();
 
-        if ($form->isSubmitted() && $form->isValid()) {
-            // encode the plain password
-            $user->setPassword(
-                $userPasswordHasher->hashPassword(
-                    $user,
-                    $form->get('plainPassword')->getData()
-                )
-            );
+		// Create the registration form.
+		$form = $this->createForm(RegistrationFormType::class, $user);
+		$form->handleRequest($request);
 
-            $entityManager->persist($user);
-            $entityManager->flush();
-            // do anything else you need here, like send an email
+		// Check if the form is submitted and valid.
+		if ($form->isSubmitted() && $form->isValid()) {
+			// Hash the plain password and set it on the user entity.
+			$user->setPassword(
+				$userPasswordHasher->hashPassword(
+					$user,
+					$form->get('plainPassword')->getData()
+				)
+			);
 
-            return $userAuthenticator->authenticateUser(
-                $user,
-                $authenticator,
-                $request
-            );
-        }
+			// Persist the new user entity to the database.
+			$entityManager->persist($user);
+			$entityManager->flush();
 
-        return $this->render('registration/register.html.twig', [
-            'registrationForm' => $form->createView(),
-        ]);
-    }
+			// Authenticate the user and redirect to the main page.
+			$userAuthenticator->authenticateUser(
+				$user,
+				$authenticator,
+				$request
+			);
+
+			// Redirect to the main page after successful registration
+			return $this->redirectToRoute('message_list'); // Adjust 'message_list' to your main page route
+		}
+
+		// Render the registration form view if not submitted or invalid
+		return $this->render('registration/register.html.twig', [
+			'registrationForm' => $form->createView(),
+		]);
+	}
 }

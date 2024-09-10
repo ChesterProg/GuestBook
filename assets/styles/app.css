@@ -1,0 +1,103 @@
+.add-new-button {
+    background-color: #009879;
+    border-radius: 15px;
+    padding: 10px 15px;
+    color: #fff;
+    transition: background-color 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease; /* Smooth transition */
+}
+.button-radius {
+    border-radius: 15px;
+    padding: 10px 15px;
+}
+.agree-list > div{
+  display: flex;
+}
+.custom-checkbox > div {
+    display: inline-block;
+}
+.custom-checkbox input {
+    width: 38px;
+}
+.add-new-button:hover {
+    background-color: #007b6d; /* Darker shade for hover effect */
+    transform: scale(1.05); /* Slightly enlarge the button on hover */
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    color: #fff;
+    font-weight: bold;
+}
+form label {
+    font-weight: bold;
+}
+
+.tx-green {
+    color: #009879;
+}
+.form-control {
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    padding: 10px;
+    transition: border-color 0.3s ease;
+}
+
+.form-control:focus {
+    border-color: #009879;
+    box-shadow: 0 0 5px rgba(0, 152, 121, 0.5);
+}
+
+.needs-validation .form-control:invalid {
+    border-color: #dc3545; /* Red border for invalid fields */
+}
+
+.table-hover tbody tr:hover {
+    font-weight: bold;
+    color: #009879;
+    background-color: #f5f5f5;
+    border-bottom: 3px #009879 solid;
+}
+.table thead tr {
+    background: #009879;
+    color: #fff;
+    text-align: left;
+}
+.table thead tr th:first-child {
+    border: 1px solid;
+    border-radius: 25px 0 0 0;
+}
+.table thead tr th:last-child {
+    border: 1px solid;
+    border-radius: 0 25px 0 0;
+}
+.table thead tr a {
+    color: #fff;
+}
+.table th,
+.table td {
+    padding: 12px 15px;
+}
+.table tbody tr {
+    border-bottom: 1px solid #ddd;
+}
+.table tbody tr:nth-of-type(even) {
+    background-color: #f3f3f3;
+}
+.table tbody tr:last-of-type {
+    border-bottom: 1px solid #009879;
+}
+
+.table {
+    border-collapse: collapse;
+    margin: 25px 0;
+    font-size: 0.9em;
+    min-width: 400px;
+}
+
+.tooltip {
+    position: absolute;
+    background-color: #333;
+    color: #fff;
+    padding: 5px 10px;
+    border-radius: 5px;
+    z-index: 1000;
+    display: none; /* Initially hidden */
+    white-space: nowrap; /* Prevent text wrapping */
+}

@@ -4,6 +4,7 @@ namespace App\Controller;
 
 use App\Entity\Message;
 use App\Form\MessageFormType;
+use App\Service\HtmlPurifierService;
 use DateTime;
 use Doctrine\ORM\EntityManagerInterface;
 use Pagerfanta\Pagerfanta;
@@ -14,8 +15,27 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 
+/**
+ * Class MessageController
+ * This controller handles the CRUD operations for messages.
+ */
 class MessageController extends AbstractController
 {
+	private HtmlPurifierService $purifier;
+
+	// Constructor to inject the HTML purifier service.
+	public function __construct(HtmlPurifierService $purifier)
+	{
+		$this->purifier = $purifier;
+	}
+
+	/**
+	 * Lists all messages with pagination and sorting.
+	 *
+	 * @param Request $request The HTTP request object.
+	 * @param EntityManagerInterface $entityManager The entity manager for database operations.
+	 * @return Response The rendered response with the message list.
+	 */
 	#[Route('/', name: 'message_list')]
 	public function list(Request $request, EntityManagerInterface $entityManager): Response
 	{
@@ -31,7 +51,7 @@ class MessageController extends AbstractController
 			->orderBy('m.' . $sortField, $sortOrder);
 
 		$pagerfanta = new Pagerfanta(new QueryAdapter($queryBuilder));
-		$pagerfanta->setMaxPerPage(25); // Set number of messages per page.
+		$pagerfanta->setMaxPerPage(5); // Set number of messages per page.
 		$currentPage = $request->query->getInt('page', 1);
 		$pagerfanta->setCurrentPage($currentPage);
 
@@ -43,6 +63,13 @@ class MessageController extends AbstractController
 		]);
 	}
 
+	/**
+	 * Handles the addition of a new message.
+	 *
+	 * @param Request $request The HTTP request object.
+	 * @param EntityManagerInterface $entityManager The entity manager for database operations.
+	 * @return Response The rendered response for adding a message.
+	 */
 	#[Route('/messages/add', name: 'message_new')]
 	public function addMessage(Request $request, EntityManagerInterface $entityManager): Response
 	{
@@ -58,13 +85,16 @@ class MessageController extends AbstractController
 		$form->handleRequest($request);
 
 		if ($form->isSubmitted() && $form->isValid()) {
-			$this->handleFormSubmission($form, $message, $request);
+			$this->handleFormSubmission($form, $message, $request, false);
 
-			// Persist the message to the database
+			// Persist the message to the database.
 			$entityManager->persist($message);
 			$entityManager->flush();
 
-			// Redirect after successful addition
+			// Set a flash message to inform the user.
+			$this->addFlash('success', 'Your message has been submitted for moderation and will appear once approved.');
+
+			// Redirect after successful addition.
 			return $this->redirectToRoute('message_list');
 		}
 
@@ -73,19 +103,31 @@ class MessageController extends AbstractController
 		]);
 	}
 
+	/**
+	 * Handles the editing of an existing message.
+	 *
+	 * @param Request $request The HTTP request object.
+	 * @param Message $message The message entity to edit.
+	 * @param EntityManagerInterface $entityManager The entity manager for database operations.
+	 * @return Response The rendered response for editing a message.
+	 */
 	#[Route('/messages/{id}/edit', name: 'message_edit')]
 	public function editMessage(Request $request, Message $message, EntityManagerInterface $entityManager): Response
 	{
+		// Check if the user is an admin.
+		$isAdmin = $this->isGranted('ROLE_ADMIN');
+
 		$form = $this->createForm(MessageFormType::class, $message, [
 			'user_id' => $this->getUser() ? $this->getUser()->getId() : 0,
 			'is_edit' => true,
+			'is_admin' => $isAdmin,
 		]);
 
 		$form->handleRequest($request);
 		$this->checkEditPermissions($message);
 
 		if ($form->isSubmitted() && $form->isValid()) {
-			$this->handleFormSubmission($form, $message, $request);
+			$this->handleFormSubmission($form, $message, $request, true);
 
 			// Update the message in the database
 			$entityManager->flush();
@@ -98,6 +140,13 @@ class MessageController extends AbstractController
 		]);
 	}
 
+	/**
+	 * Handles the deletion of a message.
+	 *
+	 * @param Message $message The message entity to delete.
+	 * @param EntityManagerInterface $entityManager The entity manager for database operations.
+	 * @return Response The redirect response after deletion.
+	 */
 	#[Route('/messages/{id}/delete', name: 'message_delete')]
 	public function delete(Message $message, EntityManagerInterface $entityManager): Response
 	{
@@ -109,7 +158,14 @@ class MessageController extends AbstractController
 		return $this->redirectToRoute('message_list');
 	}
 
-	private function handleFormSubmission($form, Message $message, Request $request): void
+	/**
+	 * Handles form submission for messages.
+	 *
+	 * @param Message $message The message entity.
+	 * @param Request $request The HTTP request object.
+	 * @param bool $isEdit Indicates if this is an edit operation.
+	 */
+	private function handleFormSubmission($form, Message $message, Request $request, bool $isEdit = false): void
 	{
 		// Handle status from form
 		$status = $form->has('status') ? $form->get('status')->getData() : false;
@@ -123,13 +179,20 @@ class MessageController extends AbstractController
 		$message->setUserAgent($request->headers->get('User-Agent'));
 
 		// Handle image upload
-		$this->handleImageUpload($form, $message);
+		if (!$isEdit) {
+			$this->handleImageUpload($form, $message);
+		}
 
 		// Sanitize input to allow only specific HTML tags
-		$allowedTags = '<a><code><i><strike><strong>';
-		$message->setText(strip_tags($message->getText(), $allowedTags));
+		$cleanText = $this->purifier->purify($message->getText());
+		$message->setText($cleanText);
 	}
 
+	/**
+	 * Handles image upload for messages.
+	 *
+	 * @param Message $message The message entity.
+	 */
 	private function handleImageUpload($form, Message $message): void
 	{
 		/** @var UploadedFile $file */
@@ -137,10 +200,16 @@ class MessageController extends AbstractController
 		if ($file instanceof UploadedFile) {
 			$newFilename = uniqid('', true) . '.' . $file->guessExtension();
 			$file->move($this->getParameter('images_directory'), $newFilename);
-			$message->setImagePath($this->getParameter('images_directory') . $newFilename);
+			$message->setImagePath('/uploads/images/' . $newFilename);
 		}
 	}
 
+	/**
+	 * Checks if the current user has permission to edit a message.
+	 *
+	 * @param Message $message The message entity.
+	 * @throws \Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException if the user does not have permission.
+	 */
 	private function checkEditPermissions(Message $message): void
 	{
 		$currentUserId = $this->getUser() ? $this->getUser()->getId() : null;
@@ -153,6 +222,12 @@ class MessageController extends AbstractController
 		}
 	}
 
+	/**
+	 * Checks if the current user has permission to delete a message.
+	 *
+	 * @param Message $message The message entity.
+	 * @throws \Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException if the user does not have permission.
+	 */
 	private function checkDeletePermissions(Message $message): void
 	{
 		$currentUserId = $this->getUser() ? $this->getUser()->getId() : null;

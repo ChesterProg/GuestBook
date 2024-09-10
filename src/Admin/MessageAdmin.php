@@ -10,18 +10,36 @@ use Sonata\AdminBundle\Show\ShowMapper;
 
 class MessageAdmin extends AbstractAdmin
 {
+
+	/**
+	 * Configure the form fields for creating/editing messages.
+	 *
+	 * @param FormMapper $form The form mapper
+	 */
 	protected function configureFormFields(FormMapper $form): void
 	{}
 
+	/**
+	 * Configure the filters for the datagrid.
+	 *
+	 * @param DatagridMapper $datagrid The datagrid mapper
+	 */
 	protected function configureDatagridFilters(DatagridMapper $datagrid): void
 	{
+		// Add filters to the datagrid for searching messages.
 		$datagrid->add('name')
 		->add('email')
 		->add('status');
 	}
 
+	/**
+	 * Configure the fields displayed in the list view of messages.
+	 *
+	 * @param ListMapper $list The list mapper
+	 */
 	protected function configureListFields(ListMapper $list): void
 	{
+		// Define the fields to display in the list view of messages.
 		$list->addIdentifier('email', null, ['label' => 'Email'])
 			->add('name', null, ['label' => 'Username'])
 			->add('text', null, ['label' => 'Text'])
@@ -37,9 +55,14 @@ class MessageAdmin extends AbstractAdmin
 			]);
 	}
 
-	// Налаштування перегляду одного запису (опціонально)
+	/**
+	 * Configure the fields displayed when viewing a single message.
+	 *
+	 * @param ShowMapper $showMapper The show mapper
+	 */
 	protected function configureShowFields(ShowMapper $show_mapper): void
 	{
+		// Define the fields to display in the detail view of a message.
 		$show_mapper
 			->add('name', null, ['label' => 'Name'])
 			->add('email', null, ['label' => 'Email'])
@@ -49,10 +72,4 @@ class MessageAdmin extends AbstractAdmin
 			->add('status', null, ['label' => 'Approved'])
 			->add('created_at', null, ['label' => 'Created At']);
 	}
-
-
-	//	protected function configureRoutes(RouteCollection $collection): void
-//	{
-//		// Додаємо додаткові маршрути, якщо потрібно (напр., для кастомних дій)
-//	}
 }
