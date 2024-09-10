@@ -10,12 +10,17 @@
         <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
 
         {% block stylesheets %}
+            <link rel="stylesheet" href="{{ asset('../assets/styles/app.css') }}">
+
+            {{ encore_entry_link_tags('app') }}
         {% endblock %}
 
         {% block javascripts %}
+            <script src="{{ asset('build/app.js') }}"></script>
+            {{ encore_entry_script_tags('app') }}
         {% endblock %}
     </head>
-    <body>
+    <body class="">
         {% block body %}{% endblock %}
     </body>
 </html>

@@ -39,7 +39,7 @@ class MessageController extends AbstractController
 			->orderBy('m.' . $sortField, $sortOrder);
 
 		$pagerfanta = new Pagerfanta(new QueryAdapter($queryBuilder));
-		$pagerfanta->setMaxPerPage(25); // Set number of messages per page.
+		$pagerfanta->setMaxPerPage(5); // Set number of messages per page.
 		$currentPage = $request->query->getInt('page', 1);
 		$pagerfanta->setCurrentPage($currentPage);
 
@@ -66,13 +66,16 @@ class MessageController extends AbstractController
 		$form->handleRequest($request);
 
 		if ($form->isSubmitted() && $form->isValid()) {
-			$this->handleFormSubmission($form, $message, $request);
+			$this->handleFormSubmission($form, $message, $request, false);
 
-			// Persist the message to the database
+			// Persist the message to the database.
 			$entityManager->persist($message);
 			$entityManager->flush();
 
-			// Redirect after successful addition
+			// Set a flash message to inform the user.
+			$this->addFlash('success', 'Your message has been submitted for moderation and will appear once approved.');
+
+			// Redirect after successful addition.
 			return $this->redirectToRoute('message_list');
 		}
 
@@ -84,16 +87,20 @@ class MessageController extends AbstractController
 	#[Route('/messages/{id}/edit', name: 'message_edit')]
 	public function editMessage(Request $request, Message $message, EntityManagerInterface $entityManager): Response
 	{
+		// Check if the user is an admin.
+		$isAdmin = $this->isGranted('ROLE_ADMIN');
+
 		$form = $this->createForm(MessageFormType::class, $message, [
 			'user_id' => $this->getUser() ? $this->getUser()->getId() : 0,
 			'is_edit' => true,
+			'is_admin' => $isAdmin,
 		]);
 
 		$form->handleRequest($request);
 		$this->checkEditPermissions($message);
 
 		if ($form->isSubmitted() && $form->isValid()) {
-			$this->handleFormSubmission($form, $message, $request);
+			$this->handleFormSubmission($form, $message, $request, true);
 
 			// Update the message in the database
 			$entityManager->flush();
@@ -117,7 +124,7 @@ class MessageController extends AbstractController
 		return $this->redirectToRoute('message_list');
 	}
 
-	private function handleFormSubmission($form, Message $message, Request $request): void
+	private function handleFormSubmission($form, Message $message, Request $request, bool $isEdit = false): void
 	{
 		// Handle status from form
 		$status = $form->has('status') ? $form->get('status')->getData() : false;
@@ -131,7 +138,9 @@ class MessageController extends AbstractController
 		$message->setUserAgent($request->headers->get('User-Agent'));
 
 		// Handle image upload
-		$this->handleImageUpload($form, $message);
+		if (!$isEdit) {
+			$this->handleImageUpload($form, $message);
+		}
 
 		// Sanitize input to allow only specific HTML tags
 		$cleanText = $this->purifier->purify($message->getText());

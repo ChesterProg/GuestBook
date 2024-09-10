@@ -1,87 +1,109 @@
 {% extends 'base.html.twig' %}
-
 {% block body %}
-    <h1 class="mt-4">Guestbook Messages</h1>
-
-    <div class="mb-3">
-        <a href="{{ path('message_new') }}" class="btn btn-success">Add New Message</a>
-    </div>
-
-    <table class="table table-striped">
-        <thead class="thead-dark">
-        <tr>
-            <th scope="col">
-                <a href="{{ path('message_list', { sort: 'name', order: sortOrder == 'ASC' ? 'DESC' : 'ASC' }) }}">
-                    Username {% if sortField == 'name' %}{{ sortOrder == 'ASC' ? '▲' : '▼' }}{% endif %}
-                </a>
-            </th>
-            <th scope="col">
-                <a href="{{ path('message_list', { sort: 'email', order: sortOrder == 'ASC' ? 'DESC' : 'ASC' }) }}">
-                    Email {% if sortField == 'email' %}{{ sortOrder == 'ASC' ? '▲' : '▼' }}{% endif %}
-                </a>
-            </th>
-            <th scope="col">Message</th>
-            <th scope="col">Image</th>
-            <th scope="col">
-                <a href="{{ path('message_list', { sort: 'created_at', order: sortOrder == 'ASC' ? 'DESC' : 'ASC' }) }}">
-                    Date {% if sortField == 'created_at' %}{{ sortOrder == 'ASC' ? '▲' : '▼' }}{% endif %}
-                </a>
-            </th>
-            <th scope="col" class="text-center">Actions</th>
-        </tr>
-        </thead>
-        <tbody>
-        {% for message in messages %}
-            <tr>
-                <td>{{ message.name }}</td>
-                <td>{{ message.email }}</td>
-                <td>{{ message.text|raw }}</td>
-                <td>
-                    {% if message.imagePath %}
-                        <img src="{{ asset(message.imagePath) }}" alt="Image" style="max-width: 100px; max-height: 100px;"/> <!-- Display the image -->
-                    {% else %}
-                        No Image
-                    {% endif %}
-                </td>
-                <td>{{ message.createdAt|date('Y-m-d H:i') }}</td>
-                <td class="text-center">
-                    <a href="{{ path('message_edit', {id: message.id}) }}" class="btn btn-primary btn-sm">Edit</a>
-                    <a href="{{ path('message_delete', {id: message.id}) }}" class="btn btn-danger btn-sm"
-                       onclick="return confirm('Are you sure you want to delete this message?');">Delete</a>
-                </td>
-            </tr>
-        {% else %}
-            <tr>
-                <td colspan="5" class="text-center">No messages yet.</td>
-            </tr>
+    <div class="container mt-4">
+        <div class="text-right">
+            {% if app.user %}
+                <a href="{{ path('app_logout') }}" class="btn btn-danger">Logout</a>
+            {% else %}
+                <a href="{{ path('app_login') }}" class="btn btn-primary">Login</a>
+            {% endif %}
+            <h1 class="text-center mb-4"><span class="tx-green">Guestbook</span> Messages</h1>
+        </div>
+        {# Display flash messages #}
+        {% for message in app.flashes('success') %}
+            <div class="alert alert-success">
+                {{ message }}
+            </div>
         {% endfor %}
-        </tbody>
-    </table>
 
-    {# Pagination #}
-    <nav aria-label="Page navigation">
-        <ul class="pagination justify-content-center">
-            {% if pager.hasPreviousPage %}
-                <li class="page-item">
-                    <a class="page-link" href="{{ path('message_list', { page: pager.currentPage - 1 }) }}" aria-label="Previous">
-                        <span aria-hidden="true">&laquo;</span>
-                    </a>
-                </li>
+        <div class="mb-3 d-flex text-right justify-content-around">
+
+            {% if is_granted('ROLE_ADMIN') %}
+                <a href="admin/dashboard" class="btn add-new-button">Admin Panel</a>
             {% endif %}
-
-            {% for page in 1..pager.nbPages %}
-                <li class="page-item {% if page == pager.currentPage %}active{% endif %}">
-                    <a class="page-link" href="{{ path('message_list', { page: page }) }}">{{ page }}</a>
-                </li>
-            {% endfor %}
-
-            {% if pager.hasNextPage %}
-                <li class="page-item">
-                    <a class="page-link" href="{{ path('message_list', { page: pager.currentPage + 1 }) }}" aria-label="Next">
-                        <span aria-hidden="true">&raquo;</span>
-                    </a>
-                </li>
-            {% endif %}
-        </ul>
-    </nav>
+            <a href="{{ path('message_new') }}" class="btn add-new-button">Add New Message</a>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-bordered table-hover">
+                <thead>
+                <tr>
+                    <th scope="col" style="width: 20%;">Image</th>
+                    <th scope="col" style="width: 15%;">
+                        <a href="{{ path('message_list', { sort: 'name', order: sortOrder == 'ASC' ? 'DESC' : 'ASC' }) }}">
+                            Username {% if sortField == 'name' %}{{ sortOrder == 'ASC' ? '▲' : '▼' }}{% endif %}
+                        </a>
+                    </th>
+                    <th scope="col" style="width: 20%;">
+                        <a href="{{ path('message_list', { sort: 'email', order: sortOrder == 'ASC' ? 'DESC' : 'ASC' }) }}">
+                            Email {% if sortField == 'email' %}{{ sortOrder == 'ASC' ? '▲' : '▼' }}{% endif %}
+                        </a>
+                    </th>
+                    <th scope="col" style="width: 35%;">Message</th>
+                    <th scope="col" style="width: 17%;">
+                        <a href="{{ path('message_list', { sort: 'created_at', order: sortOrder == 'ASC' ? 'DESC' : 'ASC' }) }}">
+                            Date {% if sortField == 'created_at' %}{{ sortOrder == 'ASC' ? '▲' : '▼' }}{% endif %}
+                        </a>
+                    </th>
+                    <th scope="col" class="text-center" style="width: 13%;">Actions</th>
+                </tr>
+                </thead>
+                <tbody>
+                {% for message in messages %}
+                    <tr class="custom-table-row">
+                        <td class="text-center">
+                            {% if message.imagePath %}
+                                <img src="{{ asset(message.imagePath) }}" alt="Image" class="img-thumbnail" style="max-width: 150px; max-height: 150px;"/>
+                            {% else %}
+                                <span class="text-muted">No Image</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ message.name }}</td>
+                        <td>{{ message.email }}</td>
+                        <td>
+                            <span class="message-text tooltip-trigger" title="{{ message.text }}">
+                                {{ message.text|raw }}{{ message.text|raw|length > 100 ? '...' : '' }}
+                            </span>
+                            {% if message.text|length > 100 %}
+                                <button class="btn btn-link show-more" data-full-text="{{ message.text }}">Show More</button>
+                            {% endif %}
+                        </td>
+                        <td>{{ message.createdAt|date('Y-m-d H:i') }}</td>
+                        <td class="text-center">
+                            <a href="{{ path('message_edit', {id: message.id}) }}" class="btn btn-primary btn-sm mb-2">Edit</a>
+                            <a href="{{ path('message_delete', {id: message.id}) }}" class="btn btn-danger btn-sm" onclick="return confirm('Are you sure you want to delete this message?');">Delete</a>
+                        </td>
+                    </tr>
+                {% else %}
+                    <tr>
+                        <td colspan="6" class="text-center">No messages yet.</td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {# Pagination #}
+        <nav aria-label="Page navigation">
+            <ul class="pagination justify-content-center">
+                {% if pager.hasPreviousPage %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ path('message_list', { page: pager.currentPage - 1 }) }}" aria-label="Previous">
+                            <span aria-hidden="true">&laquo;</span>
+                        </a>
+                    </li>
+                {% endif %}
+                {% for page in 1..pager.nbPages %}
+                    <li class="page-item {% if page == pager.currentPage %}active{% endif %}">
+                        <a class="page-link" href="{{ path('message_list', { page: page }) }}">{{ page }}</a>
+                    </li>
+                {% endfor %}
+                {% if pager.hasNextPage %}
+                    <li class="page-item">
+                        <a class="page-link" href="{{ path('message_list', { page: pager.currentPage + 1 }) }}" aria-label="Next">
+                            <span aria-hidden="true">&raquo;</span>
+                        </a>
+                    </li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
 {% endblock %}
