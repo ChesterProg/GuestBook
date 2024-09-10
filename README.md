@@ -14,8 +14,8 @@
 1. **Клонування репозиторію**
 
    Склонуйте репозиторій на вашу локальну машину:
-   git clone https://github.com/yourusername/yourproject.git
-   cd yourproject
+   git clone https://github.com/ChesterProg/GuestBook.git
+   cd YourProjectName
 
 2. **Встановлення залежностей**
 
